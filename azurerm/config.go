@@ -15,7 +15,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/automation"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerinstance"
-	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/arm/cosmos-db"
 	"github.com/Azure/azure-sdk-for-go/arm/disk"
 	"github.com/Azure/azure-sdk-for-go/arm/dns"
@@ -28,6 +27,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
 	keyVault "github.com/Azure/azure-sdk-for-go/dataplane/keyvault"
 	"github.com/Azure/azure-sdk-for-go/services/cdn/mgmt/2017-04-02/cdn"
+	"github.com/Azure/azure-sdk-for-go/services/containerregistry/mgmt/2017-10-01/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2017-09-30/containerservice"
 	"github.com/Azure/azure-sdk-for-go/services/eventgrid/mgmt/2017-09-15-preview/eventgrid"
 	"github.com/Azure/azure-sdk-for-go/services/eventhub/mgmt/2017-04-01/eventhub"
@@ -372,13 +372,6 @@ func getArmClient(c *authentication.Config) (*ArmClient, error) {
 	agc.SkipResourceProviderRegistration = c.SkipProviderRegistration
 	client.applicationGatewayClient = agc
 
-	crc := containerregistry.NewRegistriesClientWithBaseURI(endpoint, c.SubscriptionID)
-	setUserAgent(&crc.Client)
-	crc.Authorizer = auth
-	crc.Sender = sender
-	crc.SkipResourceProviderRegistration = c.SkipProviderRegistration
-	client.containerRegistryClient = crc
-
 	csc := containerservice.NewContainerServicesClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&csc.Client)
 	csc.Authorizer = auth
@@ -536,6 +529,7 @@ func getArmClient(c *authentication.Config) (*ArmClient, error) {
 	client.registerAutomationClients(endpoint, c.SubscriptionID, auth, sender)
 	client.registerAuthentication(endpoint, graphEndpoint, c.SubscriptionID, c.TenantID, auth, graphAuth, sender)
 	client.registerCDNClients(endpoint, c.SubscriptionID, auth, sender)
+	client.registerContainerRegistryClients(endpoint, c.SubscriptionID, auth, sender)
 	client.registerDatabases(endpoint, c.SubscriptionID, auth, sender)
 	client.registerDisks(endpoint, c.SubscriptionID, auth, sender)
 	client.registerEventGridClients(endpoint, c.SubscriptionID, auth, sender)
@@ -620,6 +614,12 @@ func (c *ArmClient) registerCDNClients(endpoint, subscriptionId string, auth aut
 	profilesClient.Sender = sender
 	profilesClient.SkipResourceProviderRegistration = c.skipProviderRegistration
 	c.cdnProfilesClient = profilesClient
+}
+
+func (c *ArmClient) registerContainerRegistryClients(endpoint, subscriptionId string, auth autorest.Authorizer, sender autorest.Sender) {
+	crc := containerregistry.NewRegistriesClientWithBaseURI(endpoint, subscriptionId)
+	c.configureClient(&crc.Client, auth)
+	c.containerRegistryClient = crc
 }
 
 func (c *ArmClient) registerDatabases(endpoint, subscriptionId string, auth autorest.Authorizer, sender autorest.Sender) {
